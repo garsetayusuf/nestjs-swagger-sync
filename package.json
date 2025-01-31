@@ -1,6 +1,6 @@
 {
   "name": "nestjs-swagger-sync",
-  "version": "4.2.1",
+  "version": "4.3.1",
   "description": "NestJS plugin to sync Swagger documentation with Postman",
   "author": "garseta yusuf",
   "private": false,
@@ -13,7 +13,6 @@
     "LICENSE"
   ],
   "scripts": {
-    "start:dev": "nest start --watch",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -36,8 +35,6 @@
     "rxjs": ">=6.0.0"
   },
   "dependencies": {
-    "@nestjs/platform-express": "^11.0.7",
-    "@nestjs/swagger": "^11.0.3",
     "axios": "^0.27.2",
     "newman": "^5.3.2",
     "swagger-ui-express": "^5.0.1",
