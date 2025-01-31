@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SwaggerSyncModule } from './swagger-sync';
+import { SwaggerSyncModule } from '.';
 
 @Module({
   imports: [

@@ -1,5 +1,5 @@
 import { Controller, Post } from '@nestjs/common';
-import { SwaggerSyncService } from './swagger-sync';
+import { SwaggerSyncService } from '.';
 
 @Controller()
 export class AppController {
