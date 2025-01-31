@@ -4,6 +4,10 @@ export interface SwaggerSyncConfig {
    */
   apiKey: string;
   /**
+   * The path to the Swagger documentation. Defaults to `swagger`
+   */
+  swaggerPath: string;
+  /**
    * Port to run tests on. Defaults to 3000
    */
   port?: number;

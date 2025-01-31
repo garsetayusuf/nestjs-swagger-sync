@@ -114,7 +114,9 @@ export class SwaggerSyncService {
   async syncSwagger(): Promise<void> {
     try {
       this.logger.log('Fetching Swagger documentation...');
-      const swaggerUrl = `${this.config.baseUrl || `http://localhost:${this.config.port || 3000}`}/swagger-json`;
+      const swaggerUrl = `${
+        this.config.baseUrl || `http://localhost:${this.config.port || 3000}`
+      }/${this.config.swaggerPath}-json`;
       const response = await axios.get(swaggerUrl);
       const swaggerJson = response.data;
 
