@@ -1,6 +1,6 @@
 {
   "name": "nestjs-swagger-sync",
-  "version": "4.1.1",
+  "version": "4.2.1",
   "description": "NestJS plugin to sync Swagger documentation with Postman",
   "author": "garseta yusuf",
   "private": false,
@@ -32,7 +32,7 @@
   "peerDependencies": {
     "@nestjs/common": ">=6.0.0",
     "@nestjs/core": ">=6.0.0",
-    "reflect-metadata": "^0.2.2",
+    "reflect-metadata": ">=0.1.13",
     "rxjs": ">=6.0.0"
   },
   "dependencies": {
@@ -45,10 +45,10 @@
   },
   "devDependencies": {
     "@nestjs/cli": ">=6.0.0",
-    "@nestjs/common": "^11.0.7",
-    "@nestjs/core": "^11.0.7",
+    "@nestjs/common": ">=6.0.0",
+    "@nestjs/core": ">=6.0.0",
     "@nestjs/schematics": ">=6.0.0",
-    "@nestjs/testing": "^11.0.7",
+    "@nestjs/testing": ">=6.0.0",
     "@types/jest": "^27.0.0",
     "@types/node": "^16.0.0",
     "@types/uuid": "^8.3.0",
