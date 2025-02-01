@@ -1,6 +1,6 @@
 {
   "name": "nestjs-swagger-sync",
-  "version": "6.4.1",
+  "version": "6.5.1",
   "description": "NestJS plugin to sync Swagger documentation with Postman",
   "author": "GarsetaYusuf",
   "private": false,

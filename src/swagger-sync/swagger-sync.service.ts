@@ -190,7 +190,7 @@ export class SwaggerSyncService {
       }
 
       // Upload to Postman after tests are finished
-      // await this.uploadToPostman(postmanCollection);
+      await this.uploadToPostman(postmanCollection);
       this.logger.log('Collection uploaded successfully 🚀');
     } catch (error) {
       this.handleError(error);
