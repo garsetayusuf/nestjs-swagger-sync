@@ -1,68 +1,35 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import * as newman from 'newman';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
 import { SwaggerSyncConfig } from './interfaces/swagger-sync-config.interface';
 import { SWAGGER_SYNC_OPTIONS } from './constants/constants';
+import { ApiTestService } from './api-test.service';
 
 @Injectable()
 export class SwaggerSyncService {
   private readonly logger = new Logger(SwaggerSyncService.name);
+  private isSyncing = false;
 
   constructor(
     @Inject(SWAGGER_SYNC_OPTIONS)
     private readonly config: SwaggerSyncConfig,
-  ) {}
+    private readonly apiTestService: ApiTestService,
+  ) {
+    this.validateBaseUrl(this.config.baseUrl);
+  }
 
-  private async runNewmanTests(collection: any): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      newman.run(
-        {
-          collection,
-          reporters: ['cli'],
-          environment: {
-            name: 'Local Environment',
-            values: [
-              {
-                key: 'baseUrl',
-                value:
-                  this.config.baseUrl ||
-                  `http://localhost:${this.config.port || 3000}`,
-                enabled: true,
-              },
-            ],
-          },
-          iterationCount: 1,
-          reporter: {
-            cli: {
-              noSummary: false,
-              showTimestamp: true,
-            },
-          },
-        },
-        (err, summary) => {
-          if (err) {
-            this.logger.error('Test API failed:', err);
-            reject(err);
-            return;
-          }
-
-          this.logger.log('Test API completed successfully!');
-          if (summary?.run) {
-            this.logger.log(
-              `Total requests executed: ${summary.run.stats.requests.total}`,
-            );
-            this.logger.log(
-              `Failed requests: ${summary.run.stats.requests.failed}`,
-            );
-          }
-          resolve(true);
-        },
-      );
-    });
+  private validateBaseUrl(baseUrl: string): void {
+    try {
+      const url = new URL(baseUrl);
+      if (!url.hostname) {
+        throw new Error('Invalid base URL');
+      }
+    } catch (error) {
+      throw new Error(`Invalid base URL: ${baseUrl}`);
+    }
   }
 
   private async uploadToPostman(collection: any): Promise<void> {
+    this.logger.log('Uploading collection to Postman...');
     try {
       const collectionsResponse = await axios.get(
         'https://api.getpostman.com/collections',
@@ -112,17 +79,20 @@ export class SwaggerSyncService {
   }
 
   async syncSwagger(): Promise<void> {
+    if (this.isSyncing) {
+      return;
+    }
+
+    this.isSyncing = true;
+
     try {
       this.logger.log('Fetching Swagger documentation...');
-      const swaggerUrl = `${
-        this.config.baseUrl || `http://localhost:${this.config.port || 3000}`
-      }/${this.config.swaggerPath}-json`;
+      const swaggerUrl = `${this.config.baseUrl}/${this.config.swaggerPath}-json`;
       const response = await axios.get(swaggerUrl);
       const swaggerJson = response.data;
 
       const postmanCollection = {
         info: {
-          _postman_id: uuidv4(),
           name:
             this.config.collectionName ||
             swaggerJson.info.title ||
@@ -134,9 +104,7 @@ export class SwaggerSyncService {
         variable: [
           {
             key: 'baseUrl',
-            value:
-              this.config.baseUrl ||
-              `http://localhost:${this.config.port || 3000}`,
+            value: this.config.baseUrl,
             type: 'string',
           },
           { key: 'token', value: '', type: 'string' },
@@ -144,15 +112,38 @@ export class SwaggerSyncService {
         item: this.convertSwaggerToPostmanItems(swaggerJson.paths),
       };
 
+      // Run tests in parallel with API
       if (this.config.runTests) {
-        await this.runNewmanTests(postmanCollection);
+        await this.apiTestService.runTestsInBackground(
+          postmanCollection,
+          this.config.baseUrl,
+        );
       }
 
+      // Upload to Postman after tests are finished
       await this.uploadToPostman(postmanCollection);
       this.logger.log('Collection uploaded successfully 🚀');
     } catch (error) {
-      this.logger.error(`Error: ${error.message}`);
-      throw error;
+      this.handleError(error);
+    } finally {
+      this.isSyncing = false;
+    }
+  }
+
+  private handleError(error: any): void {
+    const errors = error.errors || [];
+    const isConnectionRefused = errors.some(
+      (err) =>
+        err.code === 'ECONNREFUSED' &&
+        (err.address === '::1' || err.address === '127.0.0.1'),
+    );
+
+    if (isConnectionRefused) {
+      this.logger.error(
+        `Please make sure that the API server is running on ${this.config.baseUrl}.`,
+      );
+    } else {
+      this.logger.error(`Unexpected error: ${error}`);
     }
   }
 

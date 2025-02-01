@@ -7,7 +7,13 @@ describe('AppController', () => {
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      imports: [SwaggerSyncModule.register({ apiKey: '', swaggerPath: '' })],
+      imports: [
+        SwaggerSyncModule.register({
+          apiKey: '',
+          swaggerPath: '',
+          baseUrl: 'http://localhost:3000',
+        }),
+      ],
       controllers: [AppController],
     }).compile();
 

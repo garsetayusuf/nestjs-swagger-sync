@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SwaggerSyncService } from './swagger-sync.service';
 import { SWAGGER_SYNC_OPTIONS } from './constants/constants';
+import { ApiTestService } from './api-test.service';
 
 describe('SwaggerSyncService', () => {
   let service: SwaggerSyncService;
@@ -9,9 +10,12 @@ describe('SwaggerSyncService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SwaggerSyncService,
+        ApiTestService,
         {
           provide: SWAGGER_SYNC_OPTIONS,
-          useValue: {},
+          useValue: {
+            baseUrl: 'http://localhost:3000',
+          },
         },
       ],
     }).compile();

@@ -8,11 +8,7 @@ export interface SwaggerSyncConfig {
    */
   swaggerPath: string;
   /**
-   * Port to run tests on. Defaults to 3000
-   */
-  port?: number;
-  /**
-   * Base URL of the API. Defaults to `http://localhost:$port`
+   * Base URL of the API. Defaults to `http://localhost:3000`
    */
   baseUrl?: string;
   /**

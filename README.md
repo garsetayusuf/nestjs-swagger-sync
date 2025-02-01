@@ -5,7 +5,7 @@ A NestJS module that automatically synchronizes your Swagger/OpenAPI documentati
 ## Features
 
 - 🔄 Automatic synchronization of Swagger/OpenAPI docs to Postman collections
-- 🧪 Optional Newman test running before synchronization
+- 🧪 Optional test running before synchronization
 - 🔍 Automatic detection and updating of existing collections
 - 📁 Hierarchical organization of API endpoints
 - 🔐 Environment variable support for baseUrl and authentication
@@ -47,11 +47,11 @@ import { SwaggerSyncModule } from 'nestjs-swagger-sync';
   imports: [
     SwaggerSyncModule.register({
       apiKey: 'your-postman-api-key',
-      port: 3000,
+      swaggerPath: 'api',
       baseUrl: 'http://localhost:3000',
       collectionName: 'My API Collection',
       runTests: true,
-      ignoreVariablesPathWithBearerToken: ['api/auth/login']
+      ignoreVariablesPathWithBearerToken: ['api/auth/login'],
     }),
   ],
 })
@@ -81,7 +81,7 @@ export class AppController {
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
 | apiKey | string | Yes | - | Your Postman API key |
-| port | number | No | 3000 | The port your API is running on |
+| swaggerPath | string | Yes | swagger | The path to the Swagger documentation |
 | baseUrl | string | No | `http://localhost:{port}` | The base URL of your API |
 | collectionName | string | No | API Collection | Name for your Postman collection |
 | runTests | boolean | No | false | Whether to run Newman tests before uploading |
@@ -102,7 +102,6 @@ The module supports the following environment variables:
 
 ```env
 POSTMAN_API_KEY=your-api-key
-API_PORT=3000
 API_BASE_URL=http://localhost:3000
 ```
 
@@ -120,11 +119,11 @@ SwaggerSyncModule.register({
 
 ```typescript
 SwaggerSyncModule.register({
-  apiKey: process.env.POSTMAN_API_KEY,
-  port: 4000,
-  baseUrl: 'https://api.myapp.com',
-  collectionName: 'Production API',
-  runTests: true,
+    apiKey: 'your-postman-api-key',
+    swaggerPath: 'api',
+    baseUrl: 'http://localhost:3000',
+    collectionName: 'My API Collection',
+    runTests: true,
 })
 ```
 
@@ -217,7 +216,7 @@ npm run lint
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## Support
 
@@ -236,12 +235,3 @@ For support, please:
 ## Author
 
 - [Garseta Yusuf](https://github.com/garsetayusuf)
-
-## Changelog
-
-### 1.0.0
-
-- Initial release
-- Basic Swagger to Postman sync functionality
-- Newman test integration
-- Support for all NestJS versions
