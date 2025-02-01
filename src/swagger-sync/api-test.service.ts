@@ -47,7 +47,7 @@ export class ApiTestService {
 
     console.log(
       chalk.blue(
-        '\n ==================================== 🚀 Starting API tests ====================================\n',
+        '\n ===================================== 🚀 Starting API tests =====================================\n',
       ),
     );
     for (const folder of collection.item) {
@@ -78,7 +78,7 @@ export class ApiTestService {
     );
     console.log(
       chalk.green(
-        '\n==================================== Tests completed ✅ ====================================\n',
+        '\n ===================================== Tests completed ✅ =====================================\n',
       ),
     );
   }
@@ -133,10 +133,11 @@ export class ApiTestService {
 
       // Check if response exists
       if (response) {
-        responseTime = Date.now() - startTime;
         status = response.status;
         dataSize = Buffer.byteLength(JSON.stringify(response.data));
         success = true;
+        responseTime = Date.now() - startTime;
+        responseTimes.push(responseTime);
 
         onDataReceived(dataSize, success);
 
@@ -150,6 +151,7 @@ export class ApiTestService {
       } else {
         status = 'No Response';
         responseTime = Date.now() - startTime;
+        responseTimes.push(responseTime);
         dataSize = 0;
         success = false;
 
@@ -160,11 +162,11 @@ export class ApiTestService {
           URL: url,
           Status: status,
           ResponseTime: responseTime + 'ms',
-          Success: '❌ Fail (No response)',
         });
       }
     } catch (error) {
       responseTime = Date.now() - startTime;
+      responseTimes.push(responseTime);
       dataSize = 0;
       success = false;
 
@@ -177,7 +179,7 @@ export class ApiTestService {
           URL: url,
           Status: status,
           ResponseTime: responseTime + 'ms',
-          Success: '❌ Fail (Timeout or No response)',
+          Success: '❌ Fail',
         });
       } else {
         // Handle other errors
@@ -188,7 +190,7 @@ export class ApiTestService {
           URL: url,
           Status: status,
           ResponseTime: responseTime + 'ms',
-          Success: `❌ Fail (${error.message})`,
+          Success: '❌ Fail',
         });
       }
     }
@@ -200,7 +202,7 @@ export class ApiTestService {
 
   private convertHeaders(headers: any[]): Record<string, string> {
     return headers.reduce((acc, header) => {
-      if (header.key && header.value) {
+      if (header && header.key && header.value) {
         acc[header.key] = header.value;
       }
       return acc;

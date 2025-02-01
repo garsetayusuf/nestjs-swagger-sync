@@ -6,9 +6,8 @@ import { AppController } from './app.controller';
   imports: [
     SwaggerSyncModule.register({
       apiKey: 'your-postman-api-key',
-      swaggerPath: 'api',
       baseUrl: 'http://localhost:3000',
-      collectionName: 'My API Collection',
+      swaggerPath: 'swagger',
       runTests: true,
       ignoreVariablesPathWithBearerToken: ['api/auth/login'],
     }),

@@ -44,8 +44,9 @@ export class SwaggerSyncService {
 
       if (existingCollection) {
         this.logger.log(
-          `Collection found. Updating existing collection: ${collection.info.name} - ${existingCollection.uid}`,
+          `Updating existing collection: ${collection.info.name} - ${existingCollection.uid}`,
         );
+        const start = process.hrtime.bigint();
         await axios({
           method: 'put',
           url: `https://api.getpostman.com/collections/${existingCollection.uid}`,
@@ -57,8 +58,16 @@ export class SwaggerSyncService {
             collection,
           },
         });
+        const end = process.hrtime.bigint();
+        const timeInSeconds = (Number(end - start) / 1000000000).toFixed(2);
+
+        this.logger.log(
+          `Collection ${collection.info.name} - ${existingCollection.uid} processed successfully!, duration: ${timeInSeconds}s`,
+        );
       } else {
-        this.logger.log('Collection not found. Creating new collection...');
+        // Create new collection
+        this.logger.log('Creating new collection...');
+        const start = process.hrtime.bigint();
         await axios({
           method: 'post',
           url: 'https://api.getpostman.com/collections',
@@ -70,6 +79,12 @@ export class SwaggerSyncService {
             collection,
           },
         });
+        const end = process.hrtime.bigint();
+        const timeInSeconds = (Number(end - start) / 1000000000).toFixed(2);
+
+        this.logger.log(
+          `Collection ${collection.info.name} processed successfully!, duration: ${timeInSeconds}s`,
+        );
       }
     } catch (error) {
       throw new Error(
@@ -109,7 +124,61 @@ export class SwaggerSyncService {
           },
           { key: 'token', value: '', type: 'string' },
         ],
-        item: this.convertSwaggerToPostmanItems(swaggerJson.paths),
+        item: Object.entries(swaggerJson.paths).reduce(
+          (acc: any[], [path, methods]) => {
+            const pathSegments = path.split('/').filter((p) => p);
+            let currentLevel = acc;
+
+            pathSegments.forEach((segment, index) => {
+              const isLastSegment = index === pathSegments.length - 1;
+              let folder = currentLevel.find((item) => item.name === segment);
+
+              if (!folder) {
+                folder = { name: segment, item: [] };
+                currentLevel.push(folder);
+              }
+
+              if (isLastSegment) {
+                folder.item.push(
+                  ...Object.entries(methods).map(
+                    ([method, details]: [string, any]) => ({
+                      name:
+                        details.summary || `${segment} ${method.toUpperCase()}`,
+                      request: {
+                        method: method.toUpperCase(),
+                        header: [
+                          { key: 'Accept', value: 'application/json' },
+                          ...(this.config.ignoreVariablesPathWithBearerToken
+                            .length > 0
+                            ? this.config.ignoreVariablesPathWithBearerToken.includes(
+                                path,
+                              )
+                              ? []
+                              : [
+                                  {
+                                    key: 'Authorization',
+                                    value: 'Bearer {{token}}',
+                                  },
+                                ]
+                            : []),
+                        ],
+                        url: {
+                          raw: `{{baseUrl}}${path}`,
+                          host: ['{{baseUrl}}'],
+                          path: pathSegments,
+                        },
+                      },
+                      response: [],
+                    }),
+                  ),
+                );
+              }
+              currentLevel = folder.item;
+            });
+            return acc;
+          },
+          [],
+        ),
       };
 
       // Run tests in parallel with API
@@ -121,7 +190,7 @@ export class SwaggerSyncService {
       }
 
       // Upload to Postman after tests are finished
-      await this.uploadToPostman(postmanCollection);
+      // await this.uploadToPostman(postmanCollection);
       this.logger.log('Collection uploaded successfully 🚀');
     } catch (error) {
       this.handleError(error);
@@ -145,59 +214,5 @@ export class SwaggerSyncService {
     } else {
       this.logger.error(`Unexpected error: ${error}`);
     }
-  }
-
-  private convertSwaggerToPostmanItems(paths: any): any[] {
-    return Object.entries(paths).reduce((acc: any[], [path, methods]) => {
-      const pathSegments = path.split('/').filter((p) => p);
-      let currentLevel = acc;
-
-      pathSegments.forEach((segment, index) => {
-        const isLastSegment = index === pathSegments.length - 1;
-        let folder = currentLevel.find((item) => item.name === segment);
-
-        if (!folder) {
-          folder = { name: segment, item: [] };
-          currentLevel.push(folder);
-        }
-
-        if (isLastSegment) {
-          folder.item.push(
-            ...Object.entries(methods).map(
-              ([method, details]: [string, any]) => ({
-                name: details.summary || `${segment} ${method.toUpperCase()}`,
-                request: {
-                  method: method.toUpperCase(),
-                  header: [
-                    { key: 'Accept', value: 'application/json' },
-                    ...(this.config.ignoreVariablesPathWithBearerToken?.length >
-                    1
-                      ? this.config.ignoreVariablesPathWithBearerToken?.map(
-                          (ignorePath) => {
-                            return path !== ignorePath
-                              ? {
-                                  key: 'Authorization',
-                                  value: 'Bearer {{token}}',
-                                }
-                              : null;
-                          },
-                        )
-                      : []),
-                  ],
-                  url: {
-                    raw: `{{baseUrl}}${path}`,
-                    host: ['{{baseUrl}}'],
-                    path: pathSegments,
-                  },
-                },
-                response: [],
-              }),
-            ),
-          );
-        }
-        currentLevel = folder.item;
-      });
-      return acc;
-    }, []);
   }
 }
