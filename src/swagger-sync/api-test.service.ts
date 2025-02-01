@@ -122,6 +122,7 @@ export class ApiTestService {
     const method = request.method.toUpperCase();
     const startTime = Date.now();
     let status, responseTime, dataSize;
+    let success = false;
 
     try {
       const response = await this.axiosInstance({
@@ -129,31 +130,67 @@ export class ApiTestService {
         url,
         headers: this.convertHeaders(request.header),
       });
-      const success = response.status >= 200 && response.status < 300;
 
-      responseTime = Date.now() - startTime;
-      status = response.status;
-      responseTimes.push(responseTime);
-      dataSize = Buffer.byteLength(JSON.stringify(response.data));
-      onDataReceived(dataSize, success);
+      // Check if response exists
+      if (response) {
+        responseTime = Date.now() - startTime;
+        status = response.status;
+        dataSize = Buffer.byteLength(JSON.stringify(response.data));
+        success = true;
 
-      results.push({
-        Method: method,
-        URL: url,
-        Status: status,
-        ResponseTime: responseTime + 'ms',
-        Success: success ? '✅ Pass' : '❌ Fail',
-      });
+        onDataReceived(dataSize, success);
+
+        results.push({
+          Method: method,
+          URL: url,
+          Status: status,
+          ResponseTime: responseTime + 'ms',
+          Success: '✅ Pass',
+        });
+      } else {
+        status = 'No Response';
+        responseTime = Date.now() - startTime;
+        dataSize = 0;
+        success = false;
+
+        onDataReceived(dataSize, success);
+
+        results.push({
+          Method: method,
+          URL: url,
+          Status: status,
+          ResponseTime: responseTime + 'ms',
+          Success: '❌ Fail (No response)',
+        });
+      }
     } catch (error) {
       responseTime = Date.now() - startTime;
-      responseTimes.push(responseTime);
-      results.push({
-        Method: method,
-        URL: url,
-        Status: 'Error',
-        ResponseTime: responseTime + 'ms',
-        Success: '❌ Fail (' + error.message + ')',
-      });
+      dataSize = 0;
+      success = false;
+
+      // Check for timeout or no response error
+      if (error.code === 'ECONNABORTED' || error.code === 'ENOTFOUND') {
+        status = 'Error';
+        onDataReceived(dataSize, success);
+        results.push({
+          Method: method,
+          URL: url,
+          Status: status,
+          ResponseTime: responseTime + 'ms',
+          Success: '❌ Fail (Timeout or No response)',
+        });
+      } else {
+        // Handle other errors
+        status = 'Error';
+        onDataReceived(dataSize, success);
+        results.push({
+          Method: method,
+          URL: url,
+          Status: status,
+          ResponseTime: responseTime + 'ms',
+          Success: `❌ Fail (${error.message})`,
+        });
+      }
     }
   }
 
