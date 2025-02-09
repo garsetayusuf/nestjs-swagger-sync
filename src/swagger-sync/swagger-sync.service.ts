@@ -28,7 +28,7 @@ export class SwaggerSyncService {
     }
   }
 
-  private async uploadToPostman(collection: any): Promise<void> {
+  private async uploadToPostman(collection: any): Promise<boolean> {
     this.logger.log('Uploading collection to Postman...');
     try {
       const collectionsResponse = await axios.get(
@@ -64,6 +64,8 @@ export class SwaggerSyncService {
         this.logger.log(
           `Collection ${collection.info.name} - ${existingCollection.uid} processed successfully!, duration: ${timeInSeconds}s`,
         );
+
+        return true;
       } else {
         // Create new collection
         this.logger.log('Creating new collection...');
@@ -85,11 +87,14 @@ export class SwaggerSyncService {
         this.logger.log(
           `Collection ${collection.info.name} processed successfully!, duration: ${timeInSeconds}s`,
         );
+
+        return true;
       }
     } catch (error) {
-      throw new Error(
-        `Postman API Error: ${error.response?.data?.message || error.message}`,
-      );
+      if (axios.isAxiosError(error)) {
+        this.logger.error(`Postman API Error: ${error.code}`);
+        return false;
+      }
     }
   }
 
@@ -148,9 +153,8 @@ export class SwaggerSyncService {
                         method: method.toUpperCase(),
                         header: [
                           { key: 'Accept', value: 'application/json' },
-                          ...(this.config.ignoreVariablesPathWithBearerToken
-                            .length > 0
-                            ? this.config.ignoreVariablesPathWithBearerToken.includes(
+                          ...(this.config.ignorePathWithBearerToken?.length > 1
+                            ? this.config.ignorePathWithBearerToken.includes(
                                 path,
                               )
                               ? []
@@ -182,7 +186,8 @@ export class SwaggerSyncService {
       };
 
       // Run tests in parallel with API
-      if (this.config.runTests) {
+      const runTests = this.config.runTest ?? true;
+      if (runTests) {
         await this.apiTestService.runTestsInBackground(
           postmanCollection,
           this.config.baseUrl,
@@ -190,8 +195,10 @@ export class SwaggerSyncService {
       }
 
       // Upload to Postman after tests are finished
-      await this.uploadToPostman(postmanCollection);
-      this.logger.log('Collection uploaded successfully 🚀');
+      const upload = await this.uploadToPostman(postmanCollection);
+      if (upload) {
+        this.logger.log('Collection uploaded successfully 🚀');
+      }
     } catch (error) {
       this.handleError(error);
     } finally {

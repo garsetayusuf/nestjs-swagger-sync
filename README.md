@@ -17,7 +17,7 @@ A NestJS module that automatically synchronizes your Swagger/OpenAPI documentati
 Before you begin, ensure you have:
 
 - Node.js (>= 12.0.0)
-- NestJS (>= 6.0.0)
+- NestJS (>= 7.0.0)
 - A Postman account and API key
 - Swagger/OpenAPI documentation set up in your NestJS application
 
@@ -50,8 +50,8 @@ import { SwaggerSyncModule } from 'nestjs-swagger-sync';
       swaggerPath: 'api',
       baseUrl: 'http://localhost:3000',
       collectionName: 'My API Collection',
-      runTests: true,
-      ignoreVariablesPathWithBearerToken: ['api/auth/login'],
+      runTest: true,
+      ignorePathWithBearerToken: ['api/auth/login'],
     }),
   ],
 })
@@ -82,10 +82,10 @@ export class AppController {
 |--------|------|----------|---------|-------------|
 | apiKey | string | Yes | - | Your Postman API key |
 | swaggerPath | string | Yes | swagger | The path to the Swagger documentation |
-| baseUrl | string | No | `http://localhost:{port}` | The base URL of your API |
-| collectionName | string | No | API Collection | Name for your Postman collection |
-| runTests | boolean | No | false | Whether to run Newman tests before uploading |
-| ignoreVariablesPathWithBearerToken | array | No | [] | Array of paths to ignore when adding a Bearer token to the request |
+| baseUrl | string | Yes | - | The base URL of your API |
+| collectionName | string | No | API Collection | Override the Name of swagger to Postman collection. Defaults to swwager Title or `API Collection` |
+| runTest | boolean | No | false | Whether to run Newman tests before uploading |
+| ignorePathWithBearerToken | array | No | [] | Array of paths to ignore when adding a Bearer token to the request |
 
 ## Postman API Key
 
@@ -123,7 +123,8 @@ SwaggerSyncModule.register({
     swaggerPath: 'api',
     baseUrl: 'http://localhost:3000',
     collectionName: 'My API Collection',
-    runTests: true,
+    runTest: true,
+    ignorePathWithBearerToken: ['api/auth/login'],
 })
 ```
 
@@ -166,13 +167,12 @@ The module provides detailed error messages for common issues:
 
 This package is compatible with:
 
-- NestJS versions 6.x and above
+- NestJS versions 7.x and above
 - Node.js version 12 and above
 - TypeScript 4.x and above
 
 Tested with:
 
-- NestJS 6.x
 - NestJS 7.x
 - NestJS 8.x
 - NestJS 9.x
@@ -183,9 +183,9 @@ Tested with:
 We welcome contributions! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create your feature branch (`git checkout -b feature/new-feature`)
+3. Commit your changes (`git commit -m 'Add some new-feature'`)
+4. Push to the branch (`git push origin feature/new-feature`)
 5. Open a Pull Request
 
 ## Testing
@@ -222,7 +222,7 @@ This project is licensed under the MIT License.
 
 For support, please:
 
-1. Check the [GitHub Issues](https://github.com/yourusername/nestjs-swagger-sync/issues) page
+1. Check the [GitHub Issues](https://github.com/garsetayusuf/nestjs-swagger-sync/issues) page
 2. Create a new issue if your problem isn't already listed
 3. Contact the maintainers
 

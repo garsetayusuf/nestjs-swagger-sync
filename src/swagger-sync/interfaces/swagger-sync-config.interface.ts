@@ -8,19 +8,19 @@ export interface SwaggerSyncConfig {
    */
   swaggerPath: string;
   /**
-   * Base URL of the API. Defaults to `http://localhost:3000`
+   * Base URL of the API.
    */
-  baseUrl?: string;
+  baseUrl: string;
   /**
-   * Name of the Postman collection to create. Defaults to `My New Collection`
+   * Override the Name of swagger to Postman collection. Defaults to swwager Title or `API Collection`
    */
   collectionName?: string;
   /**
    * Whether to run tests or not. Defaults to `true`
    */
-  runTests?: boolean;
+  runTest?: boolean;
   /**
    * Array of paths to ignore when adding a Bearer token to the request. Defaults to `[]`
    */
-  ignoreVariablesPathWithBearerToken?: string[];
+  ignorePathWithBearerToken?: string[];
 }

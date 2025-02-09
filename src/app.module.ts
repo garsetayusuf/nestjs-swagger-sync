@@ -8,8 +8,6 @@ import { AppController } from './app.controller';
       apiKey: 'your-postman-api-key',
       baseUrl: 'http://localhost:3000',
       swaggerPath: 'swagger',
-      runTests: true,
-      ignoreVariablesPathWithBearerToken: ['api/auth/login'],
     }),
   ],
   controllers: [AppController],

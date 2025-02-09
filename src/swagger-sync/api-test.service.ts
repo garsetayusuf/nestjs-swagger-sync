@@ -47,7 +47,7 @@ export class ApiTestService {
 
     console.log(
       chalk.blue(
-        '\n ===================================== 🚀 Starting API tests =====================================\n',
+        '\n ==================================== 🚀 Starting API tests ====================================\n',
       ),
     );
     for (const folder of collection.item) {
