@@ -1,7 +1,9 @@
 # compiled output
 /dist
 /node_modules
-/build
+/tests/**/node_modules
+/tests/**/dist
+/reports
 
 # Logs
 logs
@@ -54,3 +56,13 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+/docs
+
+# Local documentation and generated reports
+/docs/
+/reports/
+**/reports/
+*.tgz
+*.report
+*.report.json
