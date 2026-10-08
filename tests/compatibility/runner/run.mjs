@@ -23,7 +23,6 @@ function parseArgs(argv) {
     else if (flag === '--module') args.module = argv[++i];
     else if (flag === '--node') args.node = argv[++i];
     else if (flag === '--force-node') args.forceNode = argv[++i];
-    else if (flag === '--local') args.local = true;
     else if (flag === '--all-nodes') args.allNodes = true;
   }
   return args;
@@ -161,25 +160,15 @@ drawLiveMatrix(`Compatibility matrix (${matrix.length} scenarios)`, liveRows);
 
 const tarball = `${packageManifest.name}-${packageManifest.version}.tgz`;
 const stableTarball = join('/tmp', `nestjs-swagger-sync-${process.pid}.tgz`);
-let packageSpec = stableTarball;
-if (args.local) {
-  const localBuild = shell(withNode('24', 'pnpm run build'));
-  if (localBuild.code !== 0) {
-    console.error(localBuild.output);
-    process.exit(1);
-  }
-  packageSpec = `link:${root}`;
-} else {
-  const pack = shell(
-    withNode(
-      '24',
-      `find tests/compatibility -type d \\( -name node_modules -o -name dist \\) -prune -exec rm -rf {} + && rm -f *.tgz && pnpm pack && cp ${JSON.stringify(tarball)} ${JSON.stringify(stableTarball)}`,
-    ),
-  );
-  if (pack.code !== 0) {
-    console.error(pack.output);
-    process.exit(1);
-  }
+const pack = shell(
+  withNode(
+    '24',
+    `find tests/compatibility -type d \\( -name node_modules -o -name dist \\) -prune -exec rm -rf {} + && if [ ! -f ${JSON.stringify(tarball)} ]; then pnpm pack; fi && cp ${JSON.stringify(tarball)} ${JSON.stringify(stableTarball)}`,
+  ),
+);
+if (pack.code !== 0) {
+  console.error(pack.output);
+  process.exit(1);
 }
 
 const activeNode = process.versions.node.split('.')[0];
@@ -220,7 +209,7 @@ for (const scenario of scenarios) {
       `cd ${JSON.stringify(workDir)}`,
       'rm -rf node_modules pnpm-lock.yaml package-lock.json',
       'pnpm install --no-frozen-lockfile',
-      `pnpm add ${JSON.stringify(packageSpec)}`,
+      `pnpm add ${JSON.stringify(stableTarball)}`,
       'node --version',
       scenario.module === 'esm' ? 'node check.mjs' : 'node check.cjs',
     ].join('\n'),
