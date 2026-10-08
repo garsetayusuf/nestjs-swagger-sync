@@ -417,10 +417,10 @@ pnpm run check      # typecheck plus lint plus format check plus build plus test
 | `pnpm run test:cov` | Run Vitest with V8 coverage. |
 | `pnpm run test:e2e` | Run the real HTTP E2E test. |
 | `pnpm run test:all` | Run unit/integration tests and E2E tests. |
-| `pnpm run test:compat` | Run all 28 real compatibility scenarios on the `.nvmrc` Node version using the packed tarball. |
-| `pnpm run test:compat -- --local` | Run against the current built package via a local link without packing; faster development mode, not release validation. |
-| `pnpm run test:compat:cjs` | Run only CJS compatibility scenarios. |
-| `pnpm run test:compat:esm` | Run only ESM compatibility scenarios. |
+| `pnpm run test:compat` | Runs the full unit suite first, then all 28 real compatibility scenarios using the packed tarball. Creates the versioned tarball automatically if missing. |
+| `pnpm run test:compat:cjs` | Runs CJS compatibility scenarios after the unit suite. |
+| `pnpm run test:compat:esm` | Runs ESM compatibility scenarios after the unit suite. |
+| `pnpm run pack:compat` | Explicitly creates the current package tarball. |
 | `pnpm run check` | Run typecheck, lint, format check, build, and tests. |
 
 Compatibility filters:
