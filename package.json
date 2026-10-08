@@ -39,9 +39,11 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "pretest:compat": "pnpm run test",
     "test:compat": "node tests/compatibility/runner/run.mjs",
     "test:compat:cjs": "node tests/compatibility/runner/run.mjs --module cjs",
     "test:compat:esm": "node tests/compatibility/runner/run.mjs --module esm",
+    "pack:compat": "pnpm pack",
     "test:all": "pnpm run test && pnpm run test:e2e",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run build && pnpm run test",
     "prepublishOnly": "pnpm run build"
