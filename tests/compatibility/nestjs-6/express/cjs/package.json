@@ -1,0 +1,21 @@
+{
+  "name": "compat-nestjs-6-express-cjs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "@nestjs/common": "6.10.14",
+    "@nestjs/core": "6.10.14",
+    "@nestjs/platform-express": "6.10.14",
+    "@nestjs/swagger": "3.1.0",
+    "nestjs-swagger-sync": "file:/tmp/nestjs-swagger-sync-81823.tgz",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^6.6.7",
+    "swagger-ui-express": "4.1.6"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "6.10.14",
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.3"
+  }
+}
