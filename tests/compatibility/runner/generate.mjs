@@ -122,7 +122,6 @@ function packageManifest(scenario) {
     '@nestjs/core': scenario.nestVersion,
     [`@nestjs/platform-${scenario.adapter}`]: scenario.nestVersion,
     '@nestjs/swagger': swagger,
-    'nestjs-swagger-sync': 'file:../../../../../nestjs-swagger-sync-6.6.1.tgz',
     'reflect-metadata': '^0.2.0',
     rxjs: scenario.nestjs === '6' ? '^6.6.7' : '^7.8.0',
     'swagger-ui-express': '4.1.6',
@@ -197,7 +196,7 @@ for (const scenario of allScenarios()) {
   writeFileSync(join(dir, 'package.json'), packageManifest(scenario));
   writeFileSync(
     join(dir, 'pnpm-workspace.yaml'),
-    "allowBuilds:\n  '@nestjs/core': true\n  'es5-ext': true\n",
+    "allowBuilds:\n  '@nestjs/core': true\n  'es5-ext': true\n  '@scarf/scarf': true\n",
   );
   writeFileSync(join(dir, 'tsconfig.json'), tsConfig(scenario.module));
   writeFileSync(join(sourceDir, 'app.service.ts'), APP_SERVICE);

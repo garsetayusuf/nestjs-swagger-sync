@@ -9,7 +9,6 @@
     "@nestjs/platform-fastify": "6.10.14",
     "@nestjs/swagger": "3.1.0",
     "fastify-swagger": "2.6.0",
-    "nestjs-swagger-sync": "file:/tmp/nestjs-swagger-sync-81823.tgz",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^6.6.7",
     "swagger-ui-express": "4.1.6"

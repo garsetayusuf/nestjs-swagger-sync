@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { allScenarios, scenarioDir } from '../matrix.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const packageManifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const configuredNode = readFileSync(join(root, '.nvmrc'), 'utf8').trim();
 
 function parseArgs(argv) {
@@ -22,6 +23,7 @@ function parseArgs(argv) {
     else if (flag === '--module') args.module = argv[++i];
     else if (flag === '--node') args.node = argv[++i];
     else if (flag === '--force-node') args.forceNode = argv[++i];
+    else if (flag === '--local') args.local = true;
     else if (flag === '--all-nodes') args.allNodes = true;
   }
   return args;
@@ -105,6 +107,7 @@ function tableText(title, rows) {
 const liveLogger = process.stdout.isTTY
   ? createLogUpdate(process.stdout, {
       defaultWidth: 120,
+      defaultHeight: 100,
     })
   : undefined;
 
@@ -156,19 +159,27 @@ const liveRows = matrix.map((scenario) => ({
 }));
 drawLiveMatrix(`Compatibility matrix (${matrix.length} scenarios)`, liveRows);
 
-// Pack once on the development baseline and copy to a stable path so
-// fixture installs cannot race with the repository working directory.
-const tarball = 'nestjs-swagger-sync-6.6.1.tgz';
+const tarball = `${packageManifest.name}-${packageManifest.version}.tgz`;
 const stableTarball = join('/tmp', `nestjs-swagger-sync-${process.pid}.tgz`);
-const pack = shell(
-  withNode(
-    '24',
-    `find tests/compatibility -type d \\( -name node_modules -o -name dist \\) -prune -exec rm -rf {} + && rm -f *.tgz && pnpm pack && cp ${JSON.stringify(tarball)} ${JSON.stringify(stableTarball)}`,
-  ),
-);
-if (pack.code !== 0) {
-  console.error(pack.output);
-  process.exit(1);
+let packageSpec = stableTarball;
+if (args.local) {
+  const localBuild = shell(withNode('24', 'pnpm run build'));
+  if (localBuild.code !== 0) {
+    console.error(localBuild.output);
+    process.exit(1);
+  }
+  packageSpec = `link:${root}`;
+} else {
+  const pack = shell(
+    withNode(
+      '24',
+      `find tests/compatibility -type d \\( -name node_modules -o -name dist \\) -prune -exec rm -rf {} + && rm -f *.tgz && pnpm pack && cp ${JSON.stringify(tarball)} ${JSON.stringify(stableTarball)}`,
+    ),
+  );
+  if (pack.code !== 0) {
+    console.error(pack.output);
+    process.exit(1);
+  }
 }
 
 const activeNode = process.versions.node.split('.')[0];
@@ -195,14 +206,21 @@ for (const scenario of scenarios) {
   updateLiveStatus(liveRows, key, 'running', node);
   drawLiveMatrix(`Compatibility matrix (${matrix.length} scenarios)`, liveRows);
   const started = Date.now();
-  const dir = join(root, 'tests', 'compatibility', scenarioDir(scenario));
+  const sourceDir = join(root, 'tests', 'compatibility', scenarioDir(scenario));
+  const tempRoot = join('/tmp', `nestjs-compat-${process.pid}-${key.replaceAll('/', '-')}`);
+  const workDir = join(tempRoot, 'tests', 'compatibility', scenarioDir(scenario));
+  const sharedDir = join(root, 'tests', 'compatibility', 'shared');
   const script = withNode(
     node,
     [
-      `cd ${JSON.stringify(dir)}`,
+      `rm -rf ${JSON.stringify(tempRoot)}`,
+      `mkdir -p ${JSON.stringify(workDir)}`,
+      `cp -R ${JSON.stringify(sourceDir)}/. ${JSON.stringify(workDir)}`,
+      `cp -R ${JSON.stringify(sharedDir)} ${JSON.stringify(join(tempRoot, 'tests', 'compatibility'))}/shared`,
+      `cd ${JSON.stringify(workDir)}`,
       'rm -rf node_modules pnpm-lock.yaml package-lock.json',
       'pnpm install --no-frozen-lockfile',
-      `pnpm add ${JSON.stringify(stableTarball)}`,
+      `pnpm add ${JSON.stringify(packageSpec)}`,
       'node --version',
       scenario.module === 'esm' ? 'node check.mjs' : 'node check.cjs',
     ].join('\n'),
