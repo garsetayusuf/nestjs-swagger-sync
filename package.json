@@ -3,23 +3,48 @@
   "version": "6.6.1",
   "description": "NestJS plugin to sync Swagger documentation with Postman",
   "author": "GarsetaYusuf",
+  "packageManager": "pnpm@12.10.1",
   "private": false,
   "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist/**/*",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "prepublishOnly": "npm run build"
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "lint": "oxlint src test tests",
+    "lint:fix": "oxlint --fix src test tests",
+    "format": "oxfmt --write src test tests",
+    "format:check": "oxfmt --check src test tests",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "test:compat": "node tests/compatibility/runner/run.mjs",
+    "test:compat:cjs": "node tests/compatibility/runner/run.mjs --module cjs",
+    "test:compat:esm": "node tests/compatibility/runner/run.mjs --module esm",
+    "test:all": "pnpm run test && pnpm run test:e2e",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run format:check && pnpm run build && pnpm run test",
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "nestjs",
@@ -29,59 +54,42 @@
     "openapi"
   ],
   "peerDependencies": {
-    "@nestjs/common": ">=7.0.0",
-    "@nestjs/core": ">=7.0.0",
+    "@nestjs/common": ">=6.0.0",
+    "@nestjs/core": ">=6.0.0",
     "reflect-metadata": ">=0.1.13",
     "rxjs": ">=6.0.0"
   },
   "dependencies": {
-    "axios": "^0.27.2",
+    "axios": "^1.20.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5"
   },
   "devDependencies": {
-    "@nestjs/cli": ">=7.0.0",
-    "@nestjs/common": ">=7.0.0",
-    "@nestjs/core": ">=7.0.0",
-    "@nestjs/schematics": ">=7.0.0",
-    "@nestjs/testing": ">=7.0.0",
-    "@types/jest": "^27.0.0",
-    "@types/node": "^16.0.0",
-    "@types/uuid": "^8.3.0",
-    "@typescript-eslint/eslint-plugin": "^5.0.0",
-    "@typescript-eslint/parser": "^5.0.0",
-    "eslint": "^8.0.0",
-    "eslint-config-prettier": "^8.0.0",
-    "eslint-plugin-prettier": "^4.0.0",
-    "jest": "^27.0.0",
-    "prettier": "^2.0.0",
-    "rimraf": "^3.0.0",
-    "rxjs": ">=6.0.0",
-    "ts-jest": "^27.0.0",
-    "ts-loader": "^9.0.0",
-    "ts-node": "^10.0.0",
-    "tsconfig-paths": "^3.0.0",
-    "typescript": "^4.0.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@nestjs/cli": "^12.0.8",
+    "@nestjs/common": "^12.1.2",
+    "@nestjs/core": "^12.1.2",
+    "@nestjs/platform-express": "^12.1.2",
+    "@nestjs/platform-fastify": "^12.1.2",
+    "@nestjs/schematics": "^12.0.6",
+    "@nestjs/testing": "^12.1.2",
+    "@swc/core": "^1.16.13",
+    "@types/node": "^24.19.1",
+    "@types/supertest": "^6.0.3",
+    "@vitest/coverage-v8": "^5.0.3",
+    "log-update": "^8.0.0",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0",
+    "publint": "^0.3.25",
+    "rxjs": "^7.8.2",
+    "supertest": "^7.3.1",
+    "tsdown": "^0.23.0",
+    "typescript": "^6.0.3",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^5.0.3"
   },
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=20.19.0"
   },
   "repository": {
     "type": "git",
