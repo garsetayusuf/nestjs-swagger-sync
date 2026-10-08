@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { SwaggerSyncModule } from '.';
-import { AppController } from './app.controller';
+import { SwaggerSyncModule } from './index.js';
+import { AppController } from './app.controller.js';
 
 @Module({
   imports: [

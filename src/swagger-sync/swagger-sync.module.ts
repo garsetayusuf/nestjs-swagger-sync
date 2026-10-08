@@ -1,8 +1,9 @@
-import { DynamicModule, Global, Module } from '@nestjs/common';
-import { SwaggerSyncService } from './swagger-sync.service';
-import { SwaggerSyncConfig } from './interfaces/swagger-sync-config.interface';
-import { SWAGGER_SYNC_OPTIONS } from './constants/constants';
-import { ApiTestService } from './api-test.service';
+import { Global, Module } from '@nestjs/common';
+import type { DynamicModule } from '@nestjs/common';
+import { SwaggerSyncService } from './swagger-sync.service.js';
+import type { SwaggerSyncConfig } from './interfaces/swagger-sync-config.interface.js';
+import { SWAGGER_SYNC_OPTIONS } from './constants/constants.js';
+import { ApiTestService } from './api-test.service.js';
 
 @Global()
 @Module({})
@@ -18,7 +19,7 @@ export class SwaggerSyncModule {
         SwaggerSyncService,
         ApiTestService,
       ],
-      exports: [SwaggerSyncService],
+      exports: [SwaggerSyncService, ApiTestService],
     };
   }
 }

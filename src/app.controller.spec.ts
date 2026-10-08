@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { SwaggerSyncModule } from './swagger-sync/swagger-sync.module';
+import { AppController } from './app.controller.js';
+import { SwaggerSyncModule } from './swagger-sync/swagger-sync.module.js';
 
 describe('AppController', () => {
   let appController: AppController;
