@@ -23,8 +23,8 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm run build
       - run: pnpm run test
+      - run: pnpm pack
       - run: pnpm exec publint --strict nestjs-swagger-sync-*.tgz
-        if: always()
       - run: pnpm pack --dry-run
 
   compat-primary:
