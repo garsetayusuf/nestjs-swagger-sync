@@ -1,7 +1,7 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller.js';
 import { SwaggerSyncModule } from './swagger-sync/swagger-sync.module.js';
-
 describe('AppController', () => {
   let appController: AppController;
 

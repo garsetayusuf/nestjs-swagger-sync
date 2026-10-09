@@ -347,7 +347,6 @@ API tests · http://localhost:3000
 └────────┴──────────────────────────────────────────────────────────────┴────────┴───────────────┴────────┘
 ```
 
-
 The table also reports pass rate, HTTP status distribution, blocked requests (`401`/`403`), timeout/network errors, total bytes, and average/min/max/p95 response time.
 Notifications include:
 

@@ -1,8 +1,8 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SwaggerSyncService } from './swagger-sync.service.js';
 import { SWAGGER_SYNC_OPTIONS } from './constants/constants.js';
 import { ApiTestService } from './api-test.service.js';
-
 describe('SwaggerSyncService', () => {
   let service: SwaggerSyncService;
 
