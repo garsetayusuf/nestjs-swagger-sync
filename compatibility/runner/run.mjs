@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { failureDetailsText, summarizeCompatibility, summaryText } from './report.mjs';
 import { allScenarios, scenarioDir } from '../matrix.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const packageManifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const configuredNode = readFileSync(join(root, '.nvmrc'), 'utf8').trim();
 
@@ -238,17 +238,17 @@ for (const scenario of scenarios) {
   updateLiveStatus(liveRows, key, 'running', node);
   drawLiveMatrix(`Compatibility matrix (${matrix.length} scenarios)`, liveRows);
   const started = Date.now();
-  const sourceDir = join(root, 'tests', 'compatibility', scenarioDir(scenario));
+  const sourceDir = join(root, 'compatibility', scenarioDir(scenario));
   const tempRoot = join('/tmp', `nestjs-compat-${process.pid}-${key.replaceAll('/', '-')}`);
-  const workDir = join(tempRoot, 'tests', 'compatibility', scenarioDir(scenario));
-  const sharedDir = join(root, 'tests', 'compatibility', 'shared');
+  const workDir = join(tempRoot, 'compatibility', scenarioDir(scenario));
+  const sharedDir = join(root, 'compatibility', 'shared');
   const script = withNode(
     node,
     [
       `rm -rf ${JSON.stringify(tempRoot)}`,
       `mkdir -p ${JSON.stringify(workDir)}`,
       `cp -R ${JSON.stringify(sourceDir)}/. ${JSON.stringify(workDir)}`,
-      `cp -R ${JSON.stringify(sharedDir)} ${JSON.stringify(join(tempRoot, 'tests', 'compatibility'))}/shared`,
+      `cp -R ${JSON.stringify(sharedDir)} ${JSON.stringify(join(tempRoot, 'compatibility'))}/shared`,
       `cd ${JSON.stringify(workDir)}`,
       'rm -rf node_modules pnpm-lock.yaml package-lock.json',
       'pnpm install --no-frozen-lockfile',
