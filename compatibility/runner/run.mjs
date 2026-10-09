@@ -208,7 +208,7 @@ const stableTarball = join('/tmp', `nestjs-swagger-sync-${process.pid}.tgz`);
 const pack = shell(
   withNode(
     '24',
-    `find tests/compatibility -type d \\( -name node_modules -o -name dist \\) -prune -exec rm -rf {} + && if [ ! -f ${JSON.stringify(tarball)} ]; then pnpm pack; fi && cp ${JSON.stringify(tarball)} ${JSON.stringify(stableTarball)}`,
+    `find compatibility -type d \\( -name node_modules -o -name dist \\) -prune -exec rm -rf {} + && if [ ! -f ${JSON.stringify(tarball)} ]; then pnpm pack; fi && cp ${JSON.stringify(tarball)} ${JSON.stringify(stableTarball)}`,
   ),
 );
 if (pack.code !== 0) {

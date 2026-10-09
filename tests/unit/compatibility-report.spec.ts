@@ -3,7 +3,7 @@ import {
   failureDetailsText,
   formatDuration,
   summarizeCompatibility,
-} from '../compatibility/runner/report.mjs';
+} from '../../compatibility/runner/report.mjs';
 
 describe('compatibility summary', () => {
   it('counts selected statuses and calculates selected pass rate', () => {

@@ -465,7 +465,7 @@ pnpm test:compat -- --all-nodes
 Fixture generation and package validation:
 
 ```bash
-node tests/compatibility/runner/generate.mjs
+node compatibility/runner/generate.mjs
 pnpm pack
 pnpm exec publint --strict nestjs-swagger-sync-*.tgz
 pnpm exec attw --pack nestjs-swagger-sync-*.tgz
