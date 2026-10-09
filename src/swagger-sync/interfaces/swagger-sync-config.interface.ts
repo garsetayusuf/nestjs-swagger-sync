@@ -1,5 +1,3 @@
-export type ApiTestOutputMode = 'compact' | 'table';
-
 export interface SwaggerSyncConfig {
   /**
    * Postman API key. An empty string skips the upload; fetch, build, and
@@ -35,8 +33,4 @@ export interface SwaggerSyncConfig {
    * Defaults to `false`.
    */
   dryRun?: boolean;
-  /**
-   * Terminal report style for endpoint probes. Defaults to `compact`.
-   */
-  outputMode?: ApiTestOutputMode;
 }

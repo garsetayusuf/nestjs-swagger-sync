@@ -56,7 +56,7 @@ describe('ApiTestService', () => {
 
     expect(sender).toHaveBeenCalledOnce();
     const output = log.mock.calls.map((call) => String(call[0])).join('\n');
-    expect(output).toContain('1 requests: 0 passed, 1 failed');
+    expect(output).toContain('Total requests: 0 passed  ·  1 failed');
     log.mockRestore();
   });
 

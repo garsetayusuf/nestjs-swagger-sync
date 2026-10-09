@@ -59,6 +59,20 @@ function isSwaggerPathsDocument(value: unknown): value is SwaggerDocument {
   );
 }
 
+function parseSwaggerDocument(value: unknown): SwaggerDocument | undefined {
+  if (isSwaggerPathsDocument(value)) {
+    return value;
+  }
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'document' in value &&
+    isSwaggerPathsDocument(value.document)
+  ) {
+    return value.document;
+  }
+  return undefined;
+}
 @Injectable()
 export class SwaggerSyncService {
   private readonly logger = new Logger(SwaggerSyncService.name);
@@ -218,9 +232,10 @@ export class SwaggerSyncService {
     for (const url of candidates) {
       tried.push(url);
       const response = await axios.get(url, { validateStatus: () => true });
-      if (response.status === 200 && isSwaggerPathsDocument(response.data)) {
+      const document = response.status === 200 ? parseSwaggerDocument(response.data) : undefined;
+      if (document) {
         this.logger.log(`Swagger document found at: ${url}`);
-        return response.data;
+        return document;
       }
       this.logger.warn(`Candidate ${url} missing required fields.`);
     }
@@ -309,11 +324,10 @@ export class SwaggerSyncService {
       this.logger.log('Fetching Swagger documentation...');
       const plan = await this.previewSync();
       if (this.config.runTest ?? true) {
-        await this.apiTestService.runTestsInBackground(
-          plan.collection,
-          this.config.baseUrl,
-          this.config.outputMode ?? 'compact',
-        );
+        console.log('');
+        await this.apiTestService.runTestsInBackground(plan.collection, this.config.baseUrl);
+        console.log('');
+        this.logger.log('API tests complete.');
       }
       const upload = await this.uploadToPostman(plan.collection);
       if (upload) {

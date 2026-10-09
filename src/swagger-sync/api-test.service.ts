@@ -3,7 +3,6 @@ import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import type { ApiTestOutputMode } from './interfaces/swagger-sync-config.interface.js';
 import type {
   CollectionNode,
   PostmanCollection,
@@ -38,18 +37,14 @@ export class ApiTestService {
     });
   }
 
-  async runTestsInBackground(
-    collection: PostmanCollection,
-    baseUrl: string,
-    outputMode: ApiTestOutputMode = 'compact',
-  ): Promise<void> {
+  async runTestsInBackground(collection: PostmanCollection, baseUrl: string): Promise<void> {
     if (this.isRunning) {
       return;
     }
     this.isRunning = true;
 
     try {
-      await this.executeTests(collection, baseUrl, outputMode);
+      await this.executeTests(collection, baseUrl);
     } catch (error) {
       console.error(
         chalk.red('Test execution failed:'),
@@ -60,11 +55,7 @@ export class ApiTestService {
     }
   }
 
-  private async executeTests(
-    collection: PostmanCollection,
-    baseUrl: string,
-    outputMode: ApiTestOutputMode,
-  ): Promise<void> {
+  private async executeTests(collection: PostmanCollection, baseUrl: string): Promise<void> {
     const startTime = Date.now();
     const results: TestResult[] = [];
     const responseTimes: number[] = [];
@@ -72,7 +63,7 @@ export class ApiTestService {
     let successfulRequests = 0;
     let failedRequests = 0;
 
-    console.log(chalk.blue(`API tests ${baseUrl}`));
+    console.log(chalk.blue(`API tests · ${baseUrl}`));
     for (const folder of collection.item) {
       await this.testFolderEndpoints(
         folder,
@@ -91,19 +82,14 @@ export class ApiTestService {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    if (outputMode === 'compact') {
-      this.displayCompact(results, responseTimes, totalDataReceived, duration);
-    } else {
-      this.displayTable(
-        results,
-        responseTimes,
-        totalDataReceived,
-        successfulRequests,
-        failedRequests,
-        duration,
-      );
-    }
-    console.log(chalk.green('Tests completed.'));
+    this.displayTable(
+      results,
+      responseTimes,
+      totalDataReceived,
+      successfulRequests,
+      failedRequests,
+      duration,
+    );
   }
 
   private async testFolderEndpoints(
@@ -241,27 +227,6 @@ export class ApiTestService {
     return 0;
   }
 
-  private displayCompact(
-    results: TestResult[],
-    responseTimes: number[],
-    totalDataReceived: number,
-    duration: string,
-  ): void {
-    for (const result of results) {
-      const mark = result.Passed ? chalk.green('[PASS]') : chalk.red('[FAIL]');
-      console.log(
-        `${mark} ${result.Method} ${result.URL} [${result.Status} | ${result.ResponseTime} | ${ApiTestService.formatBytes(result.DataSize)}]`,
-      );
-    }
-    const passed = results.filter((result) => result.Passed).length;
-    const failed = results.length - passed;
-    console.log(
-      chalk.green.bold(
-        `${results.length} requests: ${passed} passed, ${failed} failed (${duration}s, avg ${ApiTestService.average(responseTimes)}ms, ${ApiTestService.formatBytes(totalDataReceived)})`,
-      ),
-    );
-  }
-
   private displayTable(
     results: TestResult[],
     responseTimes: number[],
@@ -278,27 +243,98 @@ export class ApiTestService {
         chalk.cyan('Response Time'),
         chalk.cyan('Result'),
       ],
-      colWidths: [10, 40, 10, 15, 15],
+      colWidths: [10, 78, 10, 15, 15],
+      wordWrap: true,
     });
 
     for (const result of results) {
-      table.push([result.Method, result.URL, result.Status, result.ResponseTime, result.Result]);
+      const status = typeof result.Status === 'number' ? result.Status : undefined;
+      const coloredStatus =
+        status === undefined
+          ? chalk.red(String(result.Status))
+          : status >= 500
+            ? chalk.red(String(status))
+            : status >= 400
+              ? chalk.yellow(String(status))
+              : status >= 300
+                ? chalk.cyan(String(status))
+                : chalk.green(String(status));
+      const coloredResult = result.Passed ? chalk.green('Pass') : chalk.red('Fail');
+      table.push([
+        chalk.cyan(result.Method),
+        result.URL,
+        coloredStatus,
+        result.ResponseTime,
+        coloredResult,
+      ]);
     }
 
     const avgResponseTime = ApiTestService.average(responseTimes);
     const minResponseTime = responseTimes.length > 0 ? Math.min(...responseTimes) : 0;
     const maxResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
+    const p95ResponseTime = ApiTestService.percentile(responseTimes, 0.95);
     const stdDevResponseTime = ApiTestService.standardDeviation(
       responseTimes,
       Number(avgResponseTime),
     );
+    const statusCounts = new Map<string, number>();
+    let blockedRequests = 0;
+    let timeoutRequests = 0;
+    let networkErrors = 0;
+
+    for (const result of results) {
+      const status = String(result.Status);
+      statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
+      if (result.Status === 401 || result.Status === 403) {
+        blockedRequests++;
+      } else if (
+        typeof result.Status === 'string' &&
+        ['ECONNABORTED', 'ETIMEDOUT', 'TIMEOUT'].includes(result.Status)
+      ) {
+        timeoutRequests++;
+      } else if (typeof result.Status === 'string' && !result.Passed) {
+        networkErrors++;
+      }
+    }
+
+    const passRate =
+      results.length > 0 ? ((successfulRequests / results.length) * 100).toFixed(2) : '0.00';
+    const statusBreakdown = [...statusCounts.entries()]
+      .filter(([status]) => /^\d+$/.test(status))
+      .map(([status, count]) => `${status}: ${count}`)
+      .join('  ·  ');
 
     table.push([
       {
         colSpan: 5,
-        content: chalk.green.bold(
-          `Total request: ${successfulRequests} Pass, ${failedRequests} Fail`,
-        ),
+        content: [
+          chalk.bold('Total requests: '),
+          chalk.green(`${successfulRequests} passed`),
+          chalk.dim('  ·  '),
+          chalk.red(`${failedRequests} failed`),
+          chalk.dim(`  ·  Pass rate: ${passRate}%`),
+        ].join(''),
+      },
+    ]);
+    table.push([
+      {
+        colSpan: 5,
+        content: chalk.bold(`Status breakdown: ${statusBreakdown || 'none'}`),
+      },
+    ]);
+    table.push([
+      {
+        colSpan: 5,
+        content: [
+          chalk.bold('Blocked: '),
+          chalk.yellow(String(blockedRequests)),
+          chalk.dim('  ·  '),
+          chalk.bold('Timeouts: '),
+          chalk.yellow(String(timeoutRequests)),
+          chalk.dim('  ·  '),
+          chalk.bold('Network errors: '),
+          chalk.yellow(String(networkErrors)),
+        ].join(''),
       },
     ]);
     table.push([
@@ -319,12 +355,21 @@ export class ApiTestService {
       {
         colSpan: 5,
         content: chalk.green.bold(
-          `Average Response Time: ${avgResponseTime}ms [min: ${minResponseTime}ms, max: ${maxResponseTime}ms, s.d.: ${stdDevResponseTime}ms]`,
+          `Response Time: avg ${avgResponseTime}ms [min: ${minResponseTime}ms, max: ${maxResponseTime}ms, p95: ${p95ResponseTime}ms, s.d.: ${stdDevResponseTime}ms]`,
         ),
       },
     ]);
 
     console.log(table.toString());
+  }
+
+  private static percentile(times: number[], percentile: number): string {
+    if (times.length === 0) {
+      return '0.00';
+    }
+    const sorted = [...times].sort((a, b) => a - b);
+    const index = Math.min(sorted.length - 1, Math.ceil(sorted.length * percentile) - 1);
+    return sorted[index].toFixed(2);
   }
 
   private static average(times: number[]): string {

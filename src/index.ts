@@ -5,3 +5,4 @@ export * from './swagger-sync/interfaces/swagger-sync-config.interface.js';
 export * from './swagger-sync/constants/constants.js';
 export * from './swagger-sync/interfaces/sync-plan.interface.js';
 export * from './swagger-sync/postman-collection.js';
+export * from './swagger-sync/standalone.js';

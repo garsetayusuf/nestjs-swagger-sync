@@ -8,30 +8,29 @@ Turn your NestJS Swagger/OpenAPI docs into a Postman collection, probe every end
 2. Builds a hierarchical Postman collection from it (folders follow URL path segments).
 3. Probes every endpoint live against `baseUrl` and prints a test report with status, latency, and response size.
 4. Creates or updates the matching Postman collection by exact name.
+
 ## What's new in 6.7.0
 
 - ESM-first dual distribution: native ESM and CommonJS with matching declarations.
 - `previewSync()` and `SyncPlan` for read-only contract drift inspection.
 - `buildCollection()` for pure in-memory collection generation.
 - `dryRun` to fetch, build, and test without Postman mutation.
-- `outputMode: 'compact' | 'table'` for endpoint reports.
 - Swagger URL fallback between `-json` and `/json`.
 - Real compatibility fixtures for NestJS 6 through 12, Express/Fastify, and CJS/ESM.
 - `pnpm test:compat` reads `.nvmrc`, shows one live matrix table in a TTY, and records JSON/Markdown reports.
 
 ## Capabilities at a glance
 
-| Capability | Current behavior |
-|---|---|
+| Capability        | Current behavior                                                               |
+| ----------------- | ------------------------------------------------------------------------------ |
 | Swagger discovery | Tries `${baseUrl}/${swaggerPath}-json`, then `${baseUrl}/${swaggerPath}/json`. |
-| Collection build | Pure `buildCollection()` API with ignored-path filtering. |
-| Contract preview | `previewSync()` returns a read-only `SyncPlan`. |
-| Drift severity | Changes are classified as `safe`, `review`, or `breaking`. |
-| Safe validation | `dryRun` skips all Postman mutations. |
-| Endpoint probes | Axios requests with status, latency, and response-size reporting. |
-| Reports | `compact` or bordered `table` output. |
-| Distribution | Native ESM and CommonJS with matching declarations. |
-| Compatibility | NestJS 6–12, Express/Fastify, CJS/ESM. |
+| Collection build  | Pure `buildCollection()` API with ignored-path filtering.                      |
+| Contract preview  | `previewSync()` returns a read-only `SyncPlan`.                                |
+| Drift severity    | Changes are classified as `safe`, `review`, or `breaking`.                     |
+| Safe validation   | `dryRun` skips all Postman mutations.                                          |
+| Endpoint probes   | Axios requests with status, latency, and response-size reporting.              |
+| Distribution      | Native ESM and CommonJS with matching declarations.                            |
+| Compatibility     | NestJS 6–12, Express/Fastify, CJS/ESM.                                         |
 
 ## How it works
 
@@ -53,7 +52,7 @@ flowchart LR
   F --> N{"runTest?"}
   N -->|yes| O["Probe endpoints with Axios"]
   N -->|no| P["Skip probes"]
-  O --> Q["compact/table report"]
+  O --> Q["bordered table report"]
   P --> Q
   H --> R["Return logs and report"]
   L --> R
@@ -132,6 +131,47 @@ curl -X POST http://localhost:3000/admin/sync-postman
 
 You will see the Swagger fetch log, the API test report, and the Postman upload result in the terminal.
 
+## Standalone script
+
+For a sync script without a controller, run the NestJS API separately. Its `src/main.ts` owns the Swagger mount; the script only connects to the existing Swagger JSON endpoint.
+
+```typescript
+// src/helpers/swagger-to-postman.ts
+import { runSwaggerSync } from 'nestjs-swagger-sync';
+
+async function main(): Promise<void> {
+  await runSwaggerSync({
+    apiKey: process.env.POSTMAN_API_KEY ?? '',
+    swaggerPath: 'swagger',
+    baseUrl: process.env.API_BASE_URL ?? 'http://127.0.0.1:3000',
+    runTest: true,
+    dryRun: process.env.SWAGGER_SYNC_DRY_RUN === 'true',
+  });
+}
+
+main().catch((error: unknown) => {
+  console.error('Swagger sync failed:', error);
+  throw error;
+});
+```
+
+```json
+{
+  "scripts": {
+    "swagger:sync": "ts-node -r tsconfig-paths/register src/helpers/swagger-to-postman.ts"
+  }
+}
+```
+
+Run the API first, then run the sync script:
+
+```bash
+pnpm start:dev
+pnpm swagger:sync
+```
+
+With `swaggerPath: 'swagger'`, the runner checks `/swagger-json` and `/swagger/json` under `baseUrl`. The standalone script does not call `listen`, mount Swagger, or require a controller.
+
 CommonJS consumers:
 
 ```typescript
@@ -151,20 +191,18 @@ SwaggerSyncModule.register({
   runTest: true,
   ignorePathWithBearerToken: [],
   dryRun: false,
-  outputMode: 'compact',
 });
 ```
 
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| apiKey | string | Yes (empty allowed) | - | Postman API key. Empty string skips the upload; fetch, build, and tests still run. |
-| swaggerPath | string | Yes | No implicit default; use `'swagger'` for the standard setup | Path segment. The plugin tries `${baseUrl}/${swaggerPath}-json`, then `${baseUrl}/${swaggerPath}/json`. |
-| baseUrl | string | Yes | - | Base URL of your API. Must be a valid absolute URL. |
-| collectionName | string | No | Swagger `info.title`, else `API Collection` | Postman collection name. |
-| runTest | boolean | No | `true` | Probe collection endpoints before upload. |
-| ignorePathWithBearerToken | string[] | No | `[]` | Exact-match paths excluded from the collection and tests. |
-| dryRun | boolean | No | `false` | Build and optionally test the collection without calling Postman. |
-| outputMode | `'compact' \| 'table'` | No | `'compact'` | Endpoint report style. `table` shows the legacy wide report and statistics. |
+| Option                    | Type     | Required            | Default                                                     | Description                                                                                             |
+| ------------------------- | -------- | ------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| apiKey                    | string   | Yes (empty allowed) | -                                                           | Postman API key. Empty string skips the upload; fetch, build, and tests still run.                      |
+| swaggerPath               | string   | Yes                 | No implicit default; use `'swagger'` for the standard setup | Path segment. The plugin tries `${baseUrl}/${swaggerPath}-json`, then `${baseUrl}/${swaggerPath}/json`. |
+| baseUrl                   | string   | Yes                 | -                                                           | Base URL of your API. Must be a valid absolute URL.                                                     |
+| collectionName            | string   | No                  | Swagger `info.title`, else `API Collection`                 | Postman collection name.                                                                                |
+| runTest                   | boolean  | No                  | `true`                                                      | Probe collection endpoints before upload.                                                               |
+| ignorePathWithBearerToken | string[] | No                  | `[]`                                                        | Exact-match paths excluded from the collection and tests.                                               |
+| dryRun                    | boolean  | No                  | `false`                                                     | Build and optionally test the collection without calling Postman.                                       |
 
 `POSTMAN_API_KEY` and `API_BASE_URL` are suggested env names only. The module reads only what you pass in.
 
@@ -201,7 +239,7 @@ swaggerPath: 'api',
 Overrides the name. Matching against existing Postman collections is exact:
 
 ```typescript
-collectionName: 'Rentalmu API v2',
+collectionName: 'Example API v2',
 ```
 
 ### runTest
@@ -226,15 +264,6 @@ Builds the collection and optionally runs endpoint tests, then skips all Postman
 
 ```typescript
 dryRun: true,
-```
-
-### outputMode
-
-Controls the test report:
-
-```typescript
-outputMode: 'compact', // default, one concise line per request
-outputMode: 'table',   // wide table with aggregate statistics
 ```
 
 ### buildCollection()
@@ -307,17 +336,19 @@ SwaggerSyncModule.register({
 
 ## Terminal output and notifications
 
-`outputMode: 'compact'` prints one short line per request plus totals:
+Endpoint probes always print a bordered table with colored status/result cells, expanded URL columns, totals, and response-time statistics:
 
 ```text
-API tests http://localhost:3000
-[PASS] GET http://localhost:3000/users [200 | 12ms | 24.00 Bytes]
-1 requests: 1 passed, 0 failed (0.01s, avg 12.00ms, 24.00 Bytes)
-Tests completed.
+API tests · http://localhost:3000
+┌────────┬──────────────────────────────────────────────────────────────┬────────┬───────────────┬────────┐
+│ Method │ URL                                                          │ Status │ Response Time │ Result │
+├────────┼──────────────────────────────────────────────────────────────┼────────┼───────────────┼────────┤
+│ GET    │ http://localhost:3000/health                                 │ 200    │ 12ms          │ Pass   │
+└────────┴──────────────────────────────────────────────────────────────┴────────┴───────────────┴────────┘
 ```
 
-`outputMode: 'table'` prints the wide report with method, URL, status, response time, result, totals, and aggregate statistics.
 
+The table also reports pass rate, HTTP status distribution, blocked requests (`401`/`403`), timeout/network errors, total bytes, and average/min/max/p95 response time.
 Notifications include:
 
 - `Postman API key detected, collection will sync to Postman.`
@@ -357,7 +388,6 @@ import {
   SWAGGER_SYNC_OPTIONS,
 } from 'nestjs-swagger-sync';
 import type {
-  ApiTestOutputMode,
   ContractChange,
   PostmanCollection,
   PostmanEndpoint,
@@ -403,25 +433,25 @@ pnpm run check      # typecheck plus lint plus format check plus build plus test
 
 ## All available commands
 
-| Command | Purpose |
-|---|---|
-| `pnpm install --frozen-lockfile` | Install the pinned development dependencies. |
-| `pnpm run build` | Build ESM, CJS, and declarations with tsdown. |
-| `pnpm run typecheck` | Run strict TypeScript checking without emitting. |
-| `pnpm run lint` | Check source, unit, integration, and compatibility runner code with Oxlint. |
-| `pnpm run lint:fix` | Apply Oxlint autofixes. |
-| `pnpm run format` | Format source and tests with Oxfmt. |
-| `pnpm run format:check` | Verify formatting without changing files. |
-| `pnpm run test` | Run the Vitest unit and integration suite. |
-| `pnpm run test:watch` | Run Vitest in watch mode. |
-| `pnpm run test:cov` | Run Vitest with V8 coverage. |
-| `pnpm run test:e2e` | Run the real HTTP E2E test. |
-| `pnpm run test:all` | Run unit/integration tests and E2E tests. |
-| `pnpm run test:compat` | Runs the full unit suite first, then all 28 real compatibility scenarios using the packed tarball. Creates the versioned tarball automatically if missing. |
-| `pnpm run test:compat:cjs` | Runs CJS compatibility scenarios after the unit suite. |
-| `pnpm run test:compat:esm` | Runs ESM compatibility scenarios after the unit suite. |
-| `pnpm run pack:compat` | Explicitly creates the current package tarball. |
-| `pnpm run check` | Run typecheck, lint, format check, build, and tests. |
+| Command                          | Purpose                                                                                                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile` | Install the pinned development dependencies.                                                                                                               |
+| `pnpm run build`                 | Build ESM, CJS, and declarations with tsdown.                                                                                                              |
+| `pnpm run typecheck`             | Run strict TypeScript checking without emitting.                                                                                                           |
+| `pnpm run lint`                  | Check source, unit, integration, and compatibility runner code with Oxlint.                                                                                |
+| `pnpm run lint:fix`              | Apply Oxlint autofixes.                                                                                                                                    |
+| `pnpm run format`                | Format source and tests with Oxfmt.                                                                                                                        |
+| `pnpm run format:check`          | Verify formatting without changing files.                                                                                                                  |
+| `pnpm run test`                  | Run the Vitest unit and integration suite.                                                                                                                 |
+| `pnpm run test:watch`            | Run Vitest in watch mode.                                                                                                                                  |
+| `pnpm run test:cov`              | Run Vitest with V8 coverage.                                                                                                                               |
+| `pnpm run test:e2e`              | Run the real HTTP E2E test.                                                                                                                                |
+| `pnpm run test:all`              | Run unit/integration tests and E2E tests.                                                                                                                  |
+| `pnpm run test:compat`           | Runs the full unit suite first, then all 28 real compatibility scenarios using the packed tarball. Creates the versioned tarball automatically if missing. |
+| `pnpm run test:compat:cjs`       | Runs CJS compatibility scenarios after the unit suite.                                                                                                     |
+| `pnpm run test:compat:esm`       | Runs ESM compatibility scenarios after the unit suite.                                                                                                     |
+| `pnpm run pack:compat`           | Explicitly creates the current package tarball.                                                                                                            |
+| `pnpm run check`                 | Run typecheck, lint, format check, build, and tests.                                                                                                       |
 
 Compatibility filters:
 
@@ -443,6 +473,7 @@ pnpm exec attw --pack nestjs-swagger-sync-*.tgz
 ```
 
 `pnpm test:compat` reads `.nvmrc` automatically. Use `--force-node <version>` only when deliberately running the whole matrix under one runtime, for example `--force-node 24`.
+
 ## Contributing
 
 1. Fork the repo.

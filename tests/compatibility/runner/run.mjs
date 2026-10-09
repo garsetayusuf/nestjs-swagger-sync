@@ -8,6 +8,7 @@ import Table from 'cli-table3';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { failureDetailsText, summarizeCompatibility, summaryText } from './report.mjs';
 import { allScenarios, scenarioDir } from '../matrix.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -80,26 +81,58 @@ function formatSeconds(durationMs) {
 }
 
 function tableText(title, rows) {
-  const table = new Table({
-    head: [
-      chalk.bold('#'),
-      chalk.bold('Scenario'),
-      chalk.bold('Node'),
-      chalk.bold('Status'),
-      chalk.bold('Duration'),
-    ],
-    colWidths: [4, 36, 7, 13, 10],
-    wordWrap: false,
-  });
-  rows.forEach((row, index) => {
-    table.push([
-      index + 1,
-      row.scenario,
-      row.node,
-      statusText(row.status),
-      formatSeconds(row.durationMs),
-    ]);
-  });
+  const compactMatrix = rows.length > 20;
+  const table = compactMatrix
+    ? new Table({
+        head: [
+          chalk.bold('#'),
+          chalk.bold('Scenario'),
+          chalk.bold('Node'),
+          chalk.bold('Status'),
+          chalk.bold('Time'),
+          chalk.bold('#'),
+          chalk.bold('Scenario'),
+          chalk.bold('Node'),
+          chalk.bold('Status'),
+          chalk.bold('Time'),
+        ],
+        colWidths: [4, 24, 6, 11, 8, 4, 24, 6, 11, 8],
+        wordWrap: false,
+      })
+    : new Table({
+        head: [
+          chalk.bold('#'),
+          chalk.bold('Scenario'),
+          chalk.bold('Node'),
+          chalk.bold('Status'),
+          chalk.bold('Duration'),
+        ],
+        colWidths: [4, 36, 7, 13, 10],
+        wordWrap: false,
+      });
+
+  const cells = (row, index) => [
+    index + 1,
+    compactMatrix ? row.scenario.replace(/\s+\(node \d+\)$/, '') : row.scenario,
+    row.node,
+    statusText(row.status),
+    formatSeconds(row.durationMs),
+  ];
+
+  if (compactMatrix) {
+    const half = Math.ceil(rows.length / 2);
+    for (let index = 0; index < half; index += 1) {
+      const left = rows[index];
+      const right = rows[index + half];
+      table.push([
+        ...cells(left, index),
+        ...(right ? cells(right, index + half) : ['', '', '', '', '']),
+      ]);
+    }
+  } else {
+    rows.forEach((row, index) => table.push(cells(row, index)));
+  }
+
   return `${chalk.bold.cyan(title)}\n${table.toString()}\n`;
 }
 
@@ -116,12 +149,16 @@ function drawLiveMatrix(title, rows) {
   }
 }
 
-function showFinalMatrix(title, rows) {
+function showFinalMatrix(title, rows, summary) {
+  const details = failureDetailsText(rows);
+  const output = `${tableText(title, rows)}\n${summaryText(summary)}${
+    details ? `\n\n${details}` : ''
+  }`;
   if (liveLogger) {
-    liveLogger(tableText(title, rows));
+    liveLogger(output);
     liveLogger.done();
   } else {
-    console.log(`\n${tableText(title, rows)}`);
+    console.log(`\n${output}`);
   }
 }
 function updateLiveStatus(rows, key, status, node, durationMs = 0) {
@@ -133,6 +170,7 @@ function updateLiveStatus(rows, key, status, node, durationMs = 0) {
   }
 }
 
+const runStarted = Date.now();
 const args = parseArgs(process.argv.slice(2));
 const matrix = allScenarios();
 const scenarios = matrix.filter((scenario) => {
@@ -148,14 +186,21 @@ if (scenarios.length === 0) {
   process.exit(2);
 }
 
+const activeNode = process.versions.node.split('.')[0];
+const defaultNode = configuredNode || activeNode;
 const selected = new Set(scenarios.map(scenarioKey));
-const liveRows = matrix.map((scenario) => ({
-  key: scenarioKey(scenario),
-  scenario: labelFor(scenario, scenario.node),
-  node: scenario.node,
-  status: selected.has(scenarioKey(scenario)) ? 'pending' : 'not executed',
-  durationMs: 0,
-}));
+const liveRows = matrix.map((scenario) => {
+  const node = selected.has(scenarioKey(scenario))
+    ? (args.forceNode ?? args.node ?? (args.allNodes ? scenario.node : defaultNode))
+    : scenario.node;
+  return {
+    key: scenarioKey(scenario),
+    scenario: labelFor(scenario, node),
+    node,
+    status: selected.has(scenarioKey(scenario)) ? 'pending' : 'not executed',
+    durationMs: 0,
+  };
+});
 drawLiveMatrix(`Compatibility matrix (${matrix.length} scenarios)`, liveRows);
 
 const tarball = `${packageManifest.name}-${packageManifest.version}.tgz`;
@@ -171,8 +216,6 @@ if (pack.code !== 0) {
   process.exit(1);
 }
 
-const activeNode = process.versions.node.split('.')[0];
-const defaultNode = configuredNode || activeNode;
 const resultsByKey = new Map();
 
 for (const scenario of scenarios) {
@@ -239,11 +282,21 @@ const results = matrix.map((scenario) => {
     }
   );
 });
-showFinalMatrix('Final compatibility status', results);
+const summary = summarizeCompatibility(results, {
+  runtime: args.allNodes ? 'runtime matrix' : String(args.forceNode ?? args.node ?? defaultNode),
+  packageName: packageManifest.name,
+  packageVersion: packageManifest.version,
+  artifact: 'packed tarball',
+  durationMs: Date.now() - runStarted,
+});
+showFinalMatrix('Final compatibility status', results, summary);
 
 const reportsDir = join(root, 'reports');
 mkdirSync(reportsDir, { recursive: true });
-writeFileSync(join(reportsDir, 'compatibility.json'), JSON.stringify({ results }, null, 2));
+writeFileSync(
+  join(reportsDir, 'compatibility.json'),
+  JSON.stringify({ summary, results }, null, 2),
+);
 const markdown = [
   '# Compatibility report',
   '',
@@ -253,6 +306,8 @@ const markdown = [
     (result) =>
       `| ${result.scenario} | ${result.status} | ${formatSeconds(result.durationMs)} | ${String(result.reason).split('\n')[0]?.slice(0, 120) ?? ''} |`,
   ),
+  '',
+  summaryText(summary),
   '',
 ].join('\n');
 writeFileSync(join(reportsDir, 'compatibility.md'), markdown);
